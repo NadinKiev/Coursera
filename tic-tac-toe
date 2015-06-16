@@ -1,0 +1,102 @@
+"""
+Monte Carlo Tic-Tac-Toe Player
+"""
+
+import random
+import poc_ttt_gui
+import poc_ttt_provided as provided
+
+# Constants for Monte Carlo simulator
+# You may change the values of these constants as desired, but
+#  do not change their names.
+NTRIALS = 3         # Number of trials to run
+SCORE_CURRENT = 1.0 # Score for squares played by the current player
+SCORE_OTHER = 1.0   # Score for squares played by the other player
+
+
+def mc_trial(board, player):
+    """
+    Takes a current board and next player to move.
+    Modifies board with random move.
+    Return then the game is over.    
+    """
+    
+    while board.check_win()==None:
+        print "The player for this turn is: ", player
+        print "The board looks like this:","\n", board.__str__()
+        empty_squares=board.get_empty_squares()
+        next_move=random.choice(empty_squares)
+        board.move(next_move[0],next_move[1],player)
+        print "Updated board is: ","\n", board.__str__()
+        status=board.check_win()
+        if status==provided.PLAYERX or status==provided.PLAYERO or status==provided.DRAW:
+            break
+        player=provided.switch_player(player)
+        
+
+def mc_update_scores(scores, board, player):
+    """
+    Scores the completed grid and updated the scores grid.
+    """
+    winner=board.check_win()
+    human=provided.switch_player(player)
+    mc_match=0
+    mc_other=0
+    if winner==player:
+        mc_match=SCORE_CURRENT
+        mc_other=SCORE_OTHER*-1
+    elif winner==human:
+        mc_match=SCORE_CURRENT*-1
+        mc_other=SCORE_OTHER
+    
+    for row in range(board.get_dim()):
+        for col in range(board.get_dim()):
+            if board.square(row,col)==player:
+                scores[row][col]+=mc_match
+            elif board.square(row,col)==human:
+                scores[row][col]+=mc_other
+            else:
+                scores[row][col]+=0
+                
+
+def get_best_move(board, scores):
+    """
+    Should find all empty squares with the  maximum score and
+    randomly choose one.
+    """
+    empty_list=board.get_empty_squares()
+    if len(empty_list)==0:
+        return
+    score_dic={}
+    for empty_item in empty_list:
+        score_dic[empty_item]=scores[empty_item[0]][empty_item[1]]
+    dic_values=list(score_dic.values())
+    max_score=max(dic_values)
+    print max_score
+    max_list=[]    
+    for (row,col) in empty_list:
+        if scores[row][col]==max_score:
+            max_list.append((row,col))
+    
+    next_move=random.choice(max_list)
+    return next_move    
+
+def mc_move(board, player, trials):
+    """
+    Takes current board, player and number of trial.
+    Returns a position for move, as a tuple (row,col)
+    """
+    scores=[[0 for col in range(board.get_dim())] for row in range(board.get_dim())]
+    for trial in range(trials):
+        new_board=board.clone()
+        mc_trial(new_board, player)
+        mc_update_scores(scores, new_board, player)
+
+    return get_best_move(new_board, scores)   
+
+#board=provided.TTTBoard(3)
+#player=provided.PLAYERX
+#mc_trial(board, player)
+
+#provided.play_game(mc_move, NTRIALS, False)        
+poc_ttt_gui.run_gui(3, provided.PLAYERX, mc_move, NTRIALS, False)
